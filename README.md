@@ -9,8 +9,8 @@ The script is used for
 $ python3 gene_query.py --keyword keyword --output output_folder_name
 ```
 Arguments
-* --keyword: Keyword of disease or phenotype. Double quotes ("") is required if keyword contains space.
-* --output: Output folder name. The folder will be created in ./data
+  --keyword: Keyword of disease or phenotype. Double quotes ("") is required if keyword contains space.
+  --output: Output folder name. The folder will be created in ./data
 
 Note
 * ClinVar, Orphanet and HPO database will be downloaded automatically.
