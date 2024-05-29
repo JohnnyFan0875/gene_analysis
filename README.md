@@ -16,3 +16,4 @@ Note
 * ClinVar, Orphanet and HPO database will be downloaded automatically.
 * Latest OMIM data should be acquired from the website (https://www.omim.org/downloads).  
   OMIM database (2021/07) is in ./database
+
