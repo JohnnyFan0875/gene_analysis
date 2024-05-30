@@ -2,10 +2,9 @@
 import os,sys
 import time
 import xml.etree.ElementTree as ET
+import argparse
 
 def get_parser():
-
-    import argparse
 
     parser = argparse.ArgumentParser()
     parser.add_argument('--keyword','-k',required=True,type=str,help='keyword to query in database. e.g. "Kennedy disease"')
@@ -229,4 +228,4 @@ if __name__ == "__main__":
     query_genelist = merge_db_query(query_db)
 
     end_time = time.time()
-    print('*'*30+'\nProgram finished. Total spent time {}s for this program.'.format(end_time-start_time))
+    print('*'*30+'\nProgram finished. Total spent time %0.2fs for this program.'%(end_time-start_time))

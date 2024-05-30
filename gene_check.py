@@ -1,22 +1,35 @@
 import os,sys
 import time
+import argparse
 
-class parser():
+def get_parser():
 
-    def parser(self):
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--genelist', '-g', type=str, required=True, help='genlist file path for analysis. Gene with new line "\\n" splitted.')
+    parser.add_argument('--output','-o',required=True,type=str,help='output directory')
+    args = parser.parse_args()
 
-        import argparse
+    args.genelist = os.path.abspath(args.genelist.strip())
+    args.output = os.path.abspath(args.output.strip())
 
-        descrip = 'Gene check from database. Command line: python3 /home/johnny/gene_query_check_depth/gene_check_v2.py'
-        parser = argparse.ArgumentParser(formatter_class=argparse.RawDescriptionHelpFormatter,description=descrip)
-        parser.add_argument('--genelist', type=str, required=True, help='Required. Genlist file path for analysis. Gene with new line "\\n" splitted.')
-        args = parser.parse_args()
-        return args
+    if not os.path.isfile(args.genelist):
+        sys.exit('Gene list file not found. Program stop.')
+
+    return args
+
+def get_genelist():
+
+    with open(args.genelist,'r',encoding='utf-8') as genelist_file_input:
+        genelist = [i.strip() for i in genelist_file_input.read().strip().split('\n')]  
+
+    return genelist
 
 class gene_check():
 
     #get refGene and chrM_ensembl information
     def db_info_compile(self):
+
+        print('Get refGene and ensembl_chrM information...')
 
         All_genelist = set()
         with open(os.path.join(script_path,'database','refGene_20220505.txt'), 'r') as refgene_input,\
@@ -33,6 +46,8 @@ class gene_check():
 
     #replace new gene name with old gene name
     def gene_name_update(self,genelist):
+
+        print('Update gene name...')
         
         with open(os.path.join(script_path,'database','update_manual.txt'),'r') as update_manual_input,\
              open(os.path.join(script_path,'database','chrM_alias.txt'),'r') as chrM_alias_input:
@@ -41,21 +56,21 @@ class gene_check():
                 if chrM_alias.split('\t')[1].strip() in genelist:
                     genelist.remove(chrM_alias.split('\t')[1].strip())
                     genelist.append(chrM_alias.split('\t')[0].strip())
-                    print(chrM_alias.split('\t')[1].strip() + '-->' + chrM_alias.split('\t')[0].strip())
-
+                    print('*'*10 + chrM_alias.split('\t')[1].strip() + '-->' + chrM_alias.split('\t')[0].strip())
 
             for update_row in update_manual_input.readlines():
                 if update_row.split('\t')[0].strip() in genelist:
                     genelist.remove(update_row.split('\t')[0].strip())
                     genelist.append(update_row.split('\t')[1].strip())
-                    print(update_row.split('\t')[0].strip() + '-->' + update_row.split('\t')[1].strip())
+                    print('*'*10 + update_row.split('\t')[0].strip() + '-->' + update_row.split('\t')[1].strip())
 
-        print('Gene name renewed.')
         return genelist
 
     #remove duplicate gene
     def gene_rmdup(self,genelist):
 
+        print('Gene duplicate removal...')
+        
         genelist2 = sorted(list(dict.fromkeys(genelist)))
         if len(genelist2) != len(genelist):
             print(f'Gene list number from {len(genelist)} to {len(genelist2)} via rmdup step.')
@@ -65,7 +80,7 @@ class gene_check():
         return genelist2
 
     #gene classification
-    def gene_classification(self, genelist, All_genelist):
+    def gene_classification(self,genelist):
 
         #get genecard database information
         genecard_d = dict()
@@ -97,9 +112,17 @@ class gene_check():
         return classification_d
 
     #output gene check information file
-    def output_gene_check(self, classification_d, file_path):
+    def output_gene_check(self,genelist):
 
-        output_fp = file_path.replace('.xls','').replace('.txt','')+'_checked.txt'
+        os.makedirs(args.output,exist_ok=True)
+        output_fp = os.path.join(
+            args.output,
+            os.path.splitext(os.path.basename(args.genelist))[0] + '_checked.txt'
+        )
+
+        print('Final gene number:' + str(len(classification_d['final'][0])))
+        print('Final gene list: ' + ','.join(classification_d['final'][0]))
+
         with open(output_fp,'w',encoding='utf-8') as output_file:
             for filout in [i for i in classification_d if i != 'final']:
                 for gene in classification_d[filout][0]:
@@ -107,27 +130,28 @@ class gene_check():
                     print(gene+'\t'+classification_d[filout][1])
             output_file.write('\n'.join(classification_d['final'][0]))
 
-        return classification_d['final'][0]
+
 
 if __name__ == "__main__":
 
     start_time = time.time()
-    parser = parser()
-    script_path = os.path.dirname(os.path.abspath(__file__))
-    
-    file_path = parser.parser().genelist
-    if not os.path.isfile(os.path.abspath(file_path.strip())):
-        sys.exit('Requested sample file path does not exist. Program stop.')
-    with open(file_path.strip(),'r',encoding='utf-8') as genelist_file_input:
-        genelist = [i.strip() for i in genelist_file_input.read().strip().split('\n')]  
 
+    args = get_parser()
+    script_path = os.path.dirname(os.path.abspath(__file__))
+
+    #get gene list
+    genelist = get_genelist()
+    
+    #gene check
     gene_check = gene_check()
     All_genelist = gene_check.db_info_compile()
     genelist = gene_check.gene_name_update(genelist)
     genelist = gene_check.gene_rmdup(genelist)
-    classification_d = gene_check.gene_classification(genelist, All_genelist)
-    checked_genelist = gene_check.output_gene_check(classification_d, file_path)
+
+    #gene classification
+    classification_d = gene_check.gene_classification(genelist)
+    checked_genelist = gene_check.output_gene_check(genelist)
 
     end_time = time.time()
-    print('*'*30+'\nProgram finished. Total spent time {}s for this program.'.format(end_time-start_time))
+    print('*'*30+'\nProgram finished. Total spent time %0.2fs for this program.'%(end_time-start_time))
     
