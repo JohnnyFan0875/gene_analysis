@@ -6,14 +6,23 @@ The script is used for
 
 ## Gene query
 ```
-$ python3 gene_query.py --keyword keyword --output output_folder_name
+usage: gene_query.py [-h] --keyword KEYWORD --output OUTPUT
+
+Gene query from database. Command line: python3 gene_query.py
+
+optional arguments:
+  -h, --help            show this help message and exit
+  --keyword KEYWORD, -k KEYWORD
+                        keyword to query in database. e.g. "Kennedy disease"
+  --output OUTPUT, -o OUTPUT
+                        output directory
 ```
-Arguments
-* --keyword: Keyword of disease or phenotype. Double quotes ("") is required if keyword contains space.
-* --output: Output folder name. The folder will be created in ./data
 
 Note
-* ClinVar, Orphanet and HPO database will be downloaded automatically.
 * Latest OMIM data should be acquired from the website (https://www.omim.org/downloads).  
-  OMIM database (2021/07) is in ./database
+  OMIM database (2021/07) already in database
+
+### Output
+* detail_<keyword>.xls: gene query detail in every database
+* genelist_<keyword>.txt: total gene from all database 
 

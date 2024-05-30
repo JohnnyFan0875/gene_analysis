@@ -7,19 +7,22 @@ def get_parser():
 
     import argparse
 
-    descrip = 'Gene query from database. Command line: python3 gene_query.py'
-    parser = argparse.ArgumentParser(formatter_class=argparse.RawDescriptionHelpFormatter,description=descrip)
-    parser.add_argument('--keyword','-k',required=True,type=str,help='Keyword to select in database. Use double quote ("") if space included.')
-    parser.add_argument('--output','-o',required=True,type=str,help='Name of output folder name.')
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--keyword','-k',required=True,type=str,help='keyword to query in database. e.g. "Kennedy disease"')
+    parser.add_argument('--output','-o',required=True,type=str,help='output directory')
     args = parser.parse_args()
-    return args
+
+    args.output = os.path.abspath(args.output.strip())
+    keyword_li = args.keyword.lower().split(' ')
+
+    return args, keyword_li
 
 class db_download():
 
     def hpo_db(self):
 
         if 'g2p_'+time_Ym+'.xls' in os.listdir(os.path.join(script_path,'database')):
-            print('Latest HPO database already in folder. Skip downloading HPO database.')
+            print('Latest HPO database already in folder. Skip')
         else: 
             os.system('wget -c -q --show-progress http://purl.obolibrary.org/obo/hp/hpoa/genes_to_phenotype.txt -O ' + os.path.join(script_path,'database',f'g2p_{time_Ym}.xls'))
             print('HPO database downloaded.')
@@ -27,15 +30,16 @@ class db_download():
     def clinvar_db(self):
 
         if 'clinvar_'+time_Ym+'.txt' in os.listdir(os.path.join(script_path,'database')):
-            print('Latest ClinVar database already in folder. Skip downloading ClinVar database.')
+            print('Latest ClinVar database already in folder. Skip')
         else:
             os.system('wget -c -q --show-progress https://ftp.ncbi.nlm.nih.gov/pub/clinvar/tab_delimited/variant_summary.txt.gz -O ' + os.path.join(script_path,'database',f'clinvar_{time_Ym}.txt.gz'))
             os.system('gunzip ' + os.path.join(script_path,'database',f'clinvar_{time_Ym}.txt.gz'))
+            print('ClinVar database downloaded.')
 
     def orphanet_db(self):
 
         if 'orphanet_'+time_Ym+'.xls' in os.listdir(os.path.join(script_path,'database')):
-            print('Latest Orphanet database already in folder. Skip downloading Orphanet database.')
+            print('Latest Orphanet database already in folder. Skip')
         else:
             os.system('wget -c -q --show-progress https://www.orphadata.com/data/xml/en_product6.xml -O ' + os.path.join(script_path,'database',f'orphanet_{time_Ym}.xml'))
             
@@ -62,18 +66,16 @@ class db_info_query():
 
         g2p_fp = os.path.join(script_path,'database',sorted([i for i in os.listdir(os.path.join(script_path,'database')) if i.startswith('g2p')])[-1])
         hpo_g2p_li = list()
+
         with open(g2p_fp,'r',encoding='utf-8') as g2p_input:
             g2p_line = g2p_input.readline()
             while g2p_line:
-                end = ''
                 if not '#' in g2p_line:
                     gene, hpo_id, hpo_name = [g2p_line.split('\t')[i].strip() for i in range(1,4)]
-                    for k in keyword_li:
-                        if not k in hpo_name.lower():
-                            end = 'end'
+                    for disorder in [hpo_name.lower()]:
+                        if all(key in disorder for key in keyword_li):
+                            hpo_g2p_li.append(['HPO','.','.',hpo_id,hpo_name,gene])
                             break
-                    if end != 'end':
-                        hpo_g2p_li.append(['HPO','.','.',hpo_id,hpo_name,gene])        
                 g2p_line = g2p_input.readline()
 
         print('HPO g2p file query completed.')
@@ -128,16 +130,18 @@ class db_info_query():
 
         omim_fp = os.path.join(script_path,'database',sorted([i for i in os.listdir(os.path.join(script_path,'database')) if i.startswith('omim')])[-1])
         omim_li = list()
+
         with open(omim_fp,'r',encoding='utf-8') as omim_input:
             omim_line = omim_input.readline()
             while omim_line:
-                omim_gene = omim_line.split('\t')[0].strip()
-                omim_name = omim_line.split('\t')[1].strip().lower()
+                if not '#' in omim_line:
+                    omim_gene = omim_line.split('\t')[0].strip()
+                    omim_name = omim_line.split('\t')[1].strip().lower()
 
-                for omim_element in omim_name.split('/'):
-                    if all(key in omim_element for key in keyword_li):
-                        omim_li.append(['OMIM','.',omim_name,'.','.',omim_gene])
-                        break
+                    for disorder in [omim_name]:
+                        if all(key in disorder for key in keyword_li):
+                            omim_li.append(['OMIM','.',omim_name,'.','.',omim_gene])
+                            break
                 omim_line = omim_input.readline()
 
         print('OMIM file query completed.')
@@ -147,20 +151,19 @@ class db_info_query():
 
         orpha_fp = os.path.join(script_path,'database',sorted([i for i in os.listdir(os.path.join(script_path,'database')) if i.startswith('orphanet') and i.endswith('.xls')])[-1])
         orphanet_li = list()
+
         with open(orpha_fp,'r',encoding='utf-8') as orpha_input:
             orpha_line = orpha_input.readline()
             while orpha_line:
-                end = ''
                 if not '#' in orpha_line:
                     orpha_genes = orpha_line.split('\t')[2].strip()
-                    orpha_name = orpha_line.split('\t')[1].strip()
-                    for k in keyword_li:
-                        if not k in orpha_name.lower():
-                            end = 'end'
+                    orpha_name = orpha_line.split('\t')[1].lower().strip()
+
+                    for disorder in [orpha_name]:
+                        if all(key in disorder for key in keyword_li):
+                            for gene in orpha_genes.split(','):
+                                orphanet_li.append(['Orphanet','.',orpha_name,'.','.',gene])
                             break
-                    if end != 'end':
-                        for gene in orpha_genes.split(','):
-                            orphanet_li.append(['Orphanet','.',orpha_name,'.','.',gene])
                 orpha_line = orpha_input.readline()
 
         print('Orphanet file query completed.')
@@ -168,35 +171,33 @@ class db_info_query():
 
 def merge_db_query(query_db):
 
-    os.makedirs(os.path.join(script_path,'data','GeneQuery_'+args.output.strip()),exist_ok=True)
-    output_dir = os.path.join(script_path,'data','GeneQuery_'+args.output.strip())
+    os.makedirs(args.output,exist_ok=True)
 
     genelist = list()
-    output_detail_fp = os.path.join(output_dir,'detail_' + ''.join(keyword_li) + '.xls')
-    output_genelist_fp = os.path.join(output_dir,'genelist_' + ''.join(keyword_li) + '.txt')
+    output_detail_fp = os.path.join(args.output,'detail_' + ''.join(keyword_li) + '.xls')
+    output_genelist_fp = os.path.join(args.output,'genelist_' + ''.join(keyword_li) + '.txt')
+
     with open(output_detail_fp,'w',encoding='utf-8') as output_detail_file:
+
         output_detail_file.write(f'Source\tDisease_ID\tDisease_Name\tHPO_ID\tHPO_Name\tGene\n')
 
-        hpo_genelist = sorted(dict.fromkeys([i[5] for i in hpo_g2p_li]))
-        omim_genelist = sorted(dict.fromkeys([i[5] for i in omim_li]))
-        orphanet_genelist = sorted(dict.fromkeys([i[5] for i in orphanet_li]))
-        clinvar_genelist = sorted(dict.fromkeys([i[5] for i in clinvar_li]))
+        d = {'HPO':query_db[0],'OMIM':query_db[1],'Orphanet':query_db[2],'ClinVar':query_db[3]}
+        
+        for db,db_li in d.items():
+            db_genelist = sorted(dict.fromkeys([i[5] for i in db_li]))
+            output_detail_file.write(f'{db}\tTotal\t\t\t\t' + ','.join(db_genelist) + '\n')
 
-        output_detail_file.write('HPO\tTotal\t\t\t\t' + ','.join(hpo_genelist) + '\n')
-        output_detail_file.write('OMIM\tTotal\t\t\t\t' + ','.join(omim_genelist) + '\n')
-        output_detail_file.write('Orphanet\tTotal\t\t\t\t' + ','.join(orphanet_genelist) + '\n')
-        output_detail_file.write('ClinVar\tTotal\t\t\t\t' + ','.join(clinvar_genelist) + '\n')
-
-        for file in query_db:
-            for line in file:
+            for line in db_li:
                 output_detail_file.write('\t'.join(line)+'\n')
                 genelist += line[5].strip().split(',')
 
-    genelist = sorted(dict.fromkeys(genelist))
+    total_genelist = sorted(dict.fromkeys(genelist))
     with open(output_genelist_fp,'w',encoding='utf-8') as output_genelist_file:
-        output_genelist_file.write('\n'.join(genelist))
+        output_genelist_file.write('\n'.join(total_genelist))
 
-    return genelist
+    print('detail and genelist files generated.')
+
+
 
 if __name__ == "__main__":
     
@@ -205,19 +206,17 @@ if __name__ == "__main__":
     script_path = os.path.dirname(os.path.abspath(__file__))
     time_Ym = time.strftime("%Y%m")
 
-    args = get_parser()
-    keyword_origin = args.keyword
-    keyword_li = keyword_origin.lower().split(' ')
-    os.makedirs(os.path.join(script_path,'data'),exist_ok=True)
-    os.makedirs(os.path.join(script_path,'database'),exist_ok=True)
+    args, keyword_li = get_parser()
 
     #download database
+    print('Database downloading...')
     db_download = db_download()
     db_download.hpo_db()
     db_download.clinvar_db()
     db_download.orphanet_db()
 
     #database query
+    print('Gene query from database...')
     db_info_query = db_info_query()
     hpo_g2p_li = db_info_query.hpo_g2p()
     clinvar_li = db_info_query.clinvar()
@@ -225,7 +224,8 @@ if __name__ == "__main__":
     orphanet_li = db_info_query.orphanet()
     
     #make final result file
-    query_db = (hpo_g2p_li,clinvar_li,omim_li,orphanet_li)
+    print('Generate final result...')
+    query_db = (hpo_g2p_li,omim_li,orphanet_li,clinvar_li)
     query_genelist = merge_db_query(query_db)
 
     end_time = time.time()
