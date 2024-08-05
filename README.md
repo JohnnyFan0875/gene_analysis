@@ -6,8 +6,8 @@ The script is used for
 
 
 ## Requirements
-sambamba (gene depth analysis)
-pandas
+sambamba (gene depth analysis)  
+pandas  
 numpy
 
 ## Gene query

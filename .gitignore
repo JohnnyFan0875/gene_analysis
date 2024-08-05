@@ -1,0 +1,8 @@
+__pycache__/
+data/
+database/Orphanet_20*
+database/clinvar_20*
+database/g2p_20*
+database/gene_bed/
+database/orphanet_20*
+database/sample_*

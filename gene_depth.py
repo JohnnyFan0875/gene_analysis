@@ -68,7 +68,7 @@ class run_program():
         for bam_name in d_bam:
             for MQ_element in args.mapping_quality:
                 os.makedirs(os.path.join(args.output,'gene_depth'),exist_ok=True)
-                os.chdir(args.output)
+                os.chdir(args.output)                
                 cmd1 = f'less {genelist_fp} '+'''|awk '{print "sambamba depth base -t 16 -L ''' + args.dir_bed + '''/"$1".bed -c 0 -q20 -F \\"not duplicate and mapping_quality >='''+MQ_element.replace('MQ','')+'''\\" -o gene_depth/''' + bam_name + '''_"$1"_''' + MQ_element + '''.txt ''' + d_bam[bam_name] + '''"}' |sh '''
                 subprocess.call(cmd1, shell=True)
             print(f'{bam_name} sambamba analysis completed.')

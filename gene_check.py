@@ -54,21 +54,21 @@ class gene_check():
 
             for chrM_alias in chrM_alias_input.readlines():
                 if chrM_alias.split('\t')[1].strip() in genelist:
-                    genelist.remove(chrM_alias.split('\t')[1].strip())
+                    genelist = [i for i in genelist if i != chrM_alias.split('\t')[1].strip()]
                     genelist.append(chrM_alias.split('\t')[0].strip())
                     print('*'*10 + chrM_alias.split('\t')[1].strip() + '-->' + chrM_alias.split('\t')[0].strip())
 
             for update_row in update_manual_input.readlines():
                 if update_row.split('\t')[0].strip() in genelist:
-                    genelist.remove(update_row.split('\t')[0].strip())
+                    genelist = [i for i in genelist if i != update_row.split('\t')[0].strip()]
                     genelist.append(update_row.split('\t')[1].strip())
                     print('*'*10 + update_row.split('\t')[0].strip() + '-->' + update_row.split('\t')[1].strip())
-
+        
         return genelist
 
     #remove duplicate gene
     def gene_rmdup(self,genelist):
-
+        
         print('Gene duplicate removal...')
         
         genelist2 = sorted(list(dict.fromkeys(genelist)))
@@ -147,7 +147,7 @@ if __name__ == "__main__":
     All_genelist = gene_check.db_info_compile()
     genelist = gene_check.gene_name_update(genelist)
     genelist = gene_check.gene_rmdup(genelist)
-
+    
     #gene classification
     classification_d = gene_check.gene_classification(genelist)
     checked_genelist = gene_check.output_gene_check(genelist)
