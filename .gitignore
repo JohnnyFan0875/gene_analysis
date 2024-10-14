@@ -6,3 +6,4 @@ database/g2p_20*
 database/gene_bed/
 database/orphanet_20*
 database/sample_*
+database/phenotype_*
